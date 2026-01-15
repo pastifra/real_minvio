@@ -7,6 +7,7 @@ import scipy.optimize
 import matplotlib.pyplot as plt
 from pathlib import Path
 import cv2
+import argparse
 
 import lab_prototype_rt
 import utils
@@ -302,7 +303,12 @@ def run_offline_odometry(D):
     breakpoint()
 
 
+def parse_args():
+    args = argparse.ArgumentParser("Offline Odometry")
+    args.add_argument("--name", "-n", type=str, help="Experiment name (without .npz)")
+    return args.parse_args()
 
 if __name__ == "__main__":
-    D = np.load("C:/pixi_ws/minvio-hardware/data/rt-data/005ms.npz")
+    args = parse_args()
+    D = np.load(utils.get_data_path() / "rt-data" / ("%s.npz" % args.name))
     run_offline_odometry(D)

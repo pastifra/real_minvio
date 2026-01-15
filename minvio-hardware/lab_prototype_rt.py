@@ -213,12 +213,12 @@ def configure_camera(cam: pylon.InstantCamera):
 
 def camera_fn(camera_ready_event,
               duration: int, 
-              video_name: str):
+              exp_name: str | None=None):
     codec = "libx264"
     crfOut = 18
     ffmpeg_num_threads = 16
     writer = skvideo.io.FFmpegWriter(
-        video_name,
+        str(utils.get_data_path() / "video-data" / ("%s.mp4" % exp_name)),
         inputdict={'-r': str(CAMERA_FPS)},
         outputdict={'-vcodec': codec, 
                     '-crf': str(crfOut), 
@@ -353,7 +353,8 @@ def gui_fn(queue: Queue,
            annotation_overlay: np.ndarray, 
            annotation_mask: np.ndarray, 
            duration,
-           Fs: int):
+           Fs: int,
+           exp_name: str | None=None):
     if duration != np.inf:
         P = None
 
@@ -396,8 +397,11 @@ def gui_fn(queue: Queue,
             break
 
     if duration != np.inf:
-        save_name = utils.get_data_path() / "rt-data" / \
-            ("rt-data-%s.npz" % datetime.now().strftime("%Y-%m-%d-%H-%M-%S"))
+        if exp_name is not None:
+            save_name = utils.get_data_path() / "rt-data" / ("%s.npz" % exp_name)
+        else:
+            save_name = utils.get_data_path() / "rt-data" / \
+                ("rt-data-%s.npz" % datetime.now().strftime("%Y-%m-%d-%H-%M-%S"))
         np.savez(
             save_name, 
             P=P, 
@@ -590,11 +594,13 @@ def run_realtime_readout():
     # Register SIGINT handler
     signal.signal(signal.SIGINT, signal_handler)
 
+    args = parse_args()
+
     Fs = int(2e6) # Sampling rate
 
     #duration = int(MINCAM_FPS * 5)
     #duration = int(MINCAM_FPS * 60) * 20 # 20 minute capture
-    duration = int(MINCAM_FPS * 10)
+    duration = int(MINCAM_FPS * 60)
     
     read_cycles = 100
     duration = int(np.ceil(duration / read_cycles) * read_cycles)
@@ -610,7 +616,7 @@ def run_realtime_readout():
     queue_list.append(gui_queue)
     gui_process = Process(
         target=gui_fn, 
-        args=(gui_queue, img, mask, duration, Fs))
+        args=(gui_queue, img, mask, duration, Fs, args.name))
     gui_process.start()
 
     ## Create the plot process
@@ -634,7 +640,9 @@ def run_realtime_readout_and_video():
     # Register SIGINT handler
     signal.signal(signal.SIGINT, signal_handler)
 
-    video_name = utils.get_data_path() / "video-data" / "010ms.mp4"
+    args = parse_args()
+
+    video_name = utils.get_data_path() / "video-data" / "005ms.mp4"
 
     Fs = int(2e6) # Sampling rate
 
@@ -652,14 +660,14 @@ def run_realtime_readout_and_video():
     camera_ready_event.clear()
     camera_process = Process(
         target=camera_fn,
-        args=(camera_ready_event, camera_duration, video_name))
+        args=(camera_ready_event, camera_duration, args.name))
     camera_process.start()
 
     ## Create the gui process
     gui_queue = Queue()
     gui_process = Process(
         target=gui_fn, 
-        args=(gui_queue, img, mask, duration, Fs))
+        args=(gui_queue, img, mask, duration, Fs, args.name))
     gui_process.start()
 
     ## Real-time capture
@@ -669,6 +677,12 @@ def run_realtime_readout_and_video():
     
     gui_process.join()
     camera_process.join()
+
+
+def parse_args():
+    args = argparse.ArgumentParser("Offline Odometry")
+    args.add_argument("--name", "-n", type=str, required=False, default=None, help="Experiment name (without .npz)")
+    return args.parse_args()
 
 if __name__ == "__main__":
     #run_realtime_readout()
