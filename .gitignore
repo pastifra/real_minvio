@@ -1,0 +1,5 @@
+.pixi
+data
+ros2-windows
+*.lock
+__pycache__

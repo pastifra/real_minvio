@@ -1,0 +1,6 @@
+1. Jackery AC on
+2. Camera USB cable plugged in
+3. Check power supply set to 3.0 V, 0.010 A
+4. Power supply on. Check current 4-5 mA
+5. DAQ on
+6. Start capture

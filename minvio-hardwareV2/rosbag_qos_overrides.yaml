@@ -1,0 +1,56 @@
+# rosbag2 QoS override template
+#
+# How to use:
+#   1) For each topic you will record, run:
+#        ros2 topic info -v /your_topic
+#   2) Copy the publisher QoS into this file (at minimum: reliability).
+#   3) Record with:
+#        ros2 bag record ... --qos-profile-overrides-path rosbag_qos_overrides.yaml
+#
+# Notes:
+# - The most common failure is BEST_EFFORT publisher + RELIABLE subscriber -> no messages.
+# - Only override topics that actually need it.
+
+profiles:
+  # RealSense topics (defaults in realsense.py are RELIABLE)
+  /d455_camera/color/image_raw:
+    reliability: reliable
+    history: keep_last
+    depth: 2
+  /d455_camera/depth/image_rect_raw:
+    reliability: reliable
+    history: keep_last
+    depth: 2
+  /d455_camera/accel/sample:
+    reliability: reliable
+    history: keep_last
+    depth: 2000
+  /d455_camera/gyro/sample:
+    reliability: reliable
+    history: keep_last
+    depth: 2000
+
+  # DAQ sync markers (TRANSIENT_LOCAL so late subscribers still get the last value)
+  /daq_sync/start_ns:
+    reliability: reliable
+    durability: transient_local
+    history: keep_last
+    depth: 1
+  /daq_sync/stop_ns:
+    reliability: reliable
+    durability: transient_local
+    history: keep_last
+    depth: 1
+
+  # Robot topics (EDIT THESE):
+  # Example BEST_EFFORT:
+  # /merged_odom:
+  #   reliability: best_effort
+  #   history: keep_last
+  #   depth: 10
+  #
+  # Example RELIABLE:
+  # /robot/imu:
+  #   reliability: reliable
+  #   history: keep_last
+  #   depth: 50
